@@ -1,0 +1,7 @@
+venv/
+__pycache__/
+*.pyc
+.claude/.env
+eval_logs.jsonl
+eval_results.json
+*.DS_Store

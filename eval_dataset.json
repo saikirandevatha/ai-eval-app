@@ -1,0 +1,125 @@
+{
+  "cases": [
+    {
+      "id": "tc-001",
+      "name": "Simple Service Agreement",
+      "document": "SERVICE AGREEMENT\n\nThis Service Agreement (\"Agreement\") is entered into as of March 1, 2024, by and between TechCorp Inc., a Delaware corporation (\"Provider\"), and Jane Doe, an individual (\"Client\").\n\n1. SERVICES. Provider agrees to develop and maintain a web application for Client.\n\n2. PAYMENT. Client shall pay Provider a monthly fee of $3,500, due on the first day of each month. A one-time setup fee of $1,000 is due upon signing.\n\n3. TERM. This Agreement commences on March 1, 2024 and continues until February 28, 2025, unless earlier terminated.\n\n4. OBLIGATIONS. TechCorp Inc. shall provide 99.9% uptime for all hosted services. TechCorp Inc. shall respond to support tickets within 24 hours. Jane Doe shall provide timely feedback within 5 business days of any deliverable.\n\n5. GOVERNING LAW. This Agreement shall be governed by the laws of the State of New York.\n\nIN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.",
+      "ground_truth": {
+        "parties": ["TechCorp Inc.", "Jane Doe"],
+        "dates": [
+          {"label": "effective_date", "value": "2024-03-01"},
+          {"label": "end_date", "value": "2025-02-28"}
+        ],
+        "amounts": [
+          {"label": "monthly_fee", "value": "$3,500"},
+          {"label": "setup_fee", "value": "$1,000"}
+        ],
+        "obligations": [
+          "TechCorp Inc. shall provide 99.9% uptime for all hosted services",
+          "TechCorp Inc. shall respond to support tickets within 24 hours",
+          "Jane Doe shall provide timely feedback within 5 business days of any deliverable"
+        ],
+        "governing_law": "New York"
+      }
+    },
+    {
+      "id": "tc-002",
+      "name": "Multi-Party NDA",
+      "document": "NON-DISCLOSURE AGREEMENT\n\nThis Non-Disclosure Agreement is made on January 15, 2024, among Alpha Ventures LLC, Beta Solutions Ltd., and Gamma Holdings Corp. (collectively the \"Parties\").\n\n1. CONFIDENTIAL INFORMATION. Each Party may disclose confidential business information to the other Parties for the purpose of evaluating a potential joint venture.\n\n2. OBLIGATIONS. Each Party shall keep all confidential information strictly private. No Party shall disclose confidential information to any third party without prior written consent. Each Party shall use confidential information solely for evaluation purposes. Each Party shall notify the other Parties immediately upon discovering any unauthorized disclosure.\n\n3. TERM. This Agreement is effective January 15, 2024 and expires on January 14, 2026. The confidentiality obligations survive termination for an additional 3 years, through January 14, 2029.\n\n4. GOVERNING LAW. This Agreement is governed by the laws of the State of California.\n\nSigned this 15th day of January, 2024.",
+      "ground_truth": {
+        "parties": ["Alpha Ventures LLC", "Beta Solutions Ltd.", "Gamma Holdings Corp."],
+        "dates": [
+          {"label": "effective_date", "value": "2024-01-15"},
+          {"label": "expiry_date", "value": "2026-01-14"},
+          {"label": "post_termination_obligations_end", "value": "2029-01-14"}
+        ],
+        "amounts": [],
+        "obligations": [
+          "Each Party shall keep all confidential information strictly private",
+          "No Party shall disclose confidential information to any third party without prior written consent",
+          "Each Party shall use confidential information solely for evaluation purposes",
+          "Each Party shall notify the other Parties immediately upon discovering any unauthorized disclosure"
+        ],
+        "governing_law": "California"
+      }
+    },
+    {
+      "id": "tc-003",
+      "name": "Ambiguous Dates Contract",
+      "document": "CONSULTING AGREEMENT\n\nThis Consulting Agreement (\"Agreement\") is entered into between Horizon Consulting Group (\"Consultant\") and MegaRetail Corporation (\"Client\").\n\n1. ENGAGEMENT. Client engages Consultant to provide strategic advisory services beginning in the second quarter of 2024. The initial phase shall last approximately six months, with a renewal option for a further twelve-month period.\n\n2. FEES. Consultant shall be paid $15,000 per month. Travel expenses exceeding $500 in any calendar month shall be reimbursed within 30 days of invoice.\n\n3. OBLIGATIONS. Consultant shall deliver a written strategy report by the end of the initial phase. Client shall designate a point of contact within 10 business days of execution. Consultant shall maintain professional indemnity insurance throughout the engagement.\n\n4. TERMINATION. Either party may terminate this Agreement with 30 days written notice.\n\n5. GOVERNING LAW. This Agreement shall be construed in accordance with the laws of Texas.",
+      "ground_truth": {
+        "parties": ["Horizon Consulting Group", "MegaRetail Corporation"],
+        "dates": [
+          {"label": "start_period", "value": "Q2 2024"},
+          {"label": "initial_phase_duration", "value": "approximately 6 months"},
+          {"label": "renewal_option_duration", "value": "12 months"}
+        ],
+        "amounts": [
+          {"label": "monthly_fee", "value": "$15,000"},
+          {"label": "travel_expense_threshold", "value": "$500"}
+        ],
+        "obligations": [
+          "Consultant shall deliver a written strategy report by the end of the initial phase",
+          "Client shall designate a point of contact within 10 business days of execution",
+          "Consultant shall maintain professional indemnity insurance throughout the engagement"
+        ],
+        "governing_law": "Texas"
+      }
+    },
+    {
+      "id": "tc-004",
+      "name": "No Governing Law Clause",
+      "document": "FREELANCE DEVELOPMENT AGREEMENT\n\nThis Agreement is made on June 1, 2024 between Nova Digital Agency (\"Agency\") and Alex Rivera (\"Freelancer\").\n\n1. SCOPE OF WORK. Freelancer agrees to design and develop a mobile application as specified in Exhibit A.\n\n2. COMPENSATION. Agency shall pay Freelancer a total project fee of $8,000, payable in two installments: $4,000 upon project kickoff and $4,000 upon final delivery.\n\n3. TIMELINE. Project kickoff is June 1, 2024. Final delivery is due August 31, 2024.\n\n4. INTELLECTUAL PROPERTY. All work product created under this Agreement shall be the sole and exclusive property of Agency upon receipt of full payment.\n\n5. OBLIGATIONS. Freelancer shall submit weekly progress updates every Friday. Agency shall provide all required assets and content within 7 days of project kickoff. Freelancer shall make up to 3 rounds of revisions at no additional cost.",
+      "ground_truth": {
+        "parties": ["Nova Digital Agency", "Alex Rivera"],
+        "dates": [
+          {"label": "agreement_date", "value": "2024-06-01"},
+          {"label": "project_kickoff", "value": "2024-06-01"},
+          {"label": "final_delivery", "value": "2024-08-31"}
+        ],
+        "amounts": [
+          {"label": "total_project_fee", "value": "$8,000"},
+          {"label": "kickoff_installment", "value": "$4,000"},
+          {"label": "delivery_installment", "value": "$4,000"}
+        ],
+        "obligations": [
+          "Freelancer shall submit weekly progress updates every Friday",
+          "Agency shall provide all required assets and content within 7 days of project kickoff",
+          "Freelancer shall make up to 3 rounds of revisions at no additional cost"
+        ],
+        "governing_law": null
+      }
+    },
+    {
+      "id": "tc-005",
+      "name": "Complex SaaS Agreement",
+      "document": "SOFTWARE AS A SERVICE AGREEMENT\n\nThis SaaS Agreement is entered into as of September 1, 2024, between CloudStream Technologies Inc. (\"Vendor\"), DataFlow Analytics Ltd. (\"Customer\"), and SecureVault Partners (\"Escrow Agent\").\n\n1. LICENSE. Vendor grants Customer a non-exclusive, non-transferable license to access the CloudStream Platform.\n\n2. FEES. Customer shall pay an annual subscription fee of $120,000, due September 1 each year. Overage charges of $0.02 per API call beyond 10 million monthly calls apply. A professional services fee of $25,000 covers onboarding through November 30, 2024.\n\n3. OBLIGATIONS.\n   a. Vendor shall maintain 99.95% platform uptime measured monthly.\n   b. Vendor shall provide 24/7 technical support with a 1-hour response SLA for critical issues.\n   c. Vendor shall perform weekly automated backups of all Customer data.\n   d. Vendor shall notify Customer of any security incident within 72 hours of discovery.\n   e. Vendor shall release quarterly product updates.\n   f. Customer shall designate a technical administrator within 30 days of the effective date.\n   g. Customer shall not exceed 50 concurrent user sessions without written approval.\n   h. Customer shall comply with all applicable data protection laws.\n   i. Customer shall provide Vendor with reasonable access for audit purposes upon 14 days notice.\n   j. Escrow Agent shall hold source code in escrow and release it to Customer upon Vendor insolvency.\n\n4. TERM. Initial term: September 1, 2024 through August 31, 2027. Auto-renews for 1-year periods unless terminated with 90 days notice.\n\n5. GOVERNING LAW. This Agreement is governed by the laws of the State of Delaware.",
+      "ground_truth": {
+        "parties": ["CloudStream Technologies Inc.", "DataFlow Analytics Ltd.", "SecureVault Partners"],
+        "dates": [
+          {"label": "effective_date", "value": "2024-09-01"},
+          {"label": "onboarding_end", "value": "2024-11-30"},
+          {"label": "initial_term_end", "value": "2027-08-31"}
+        ],
+        "amounts": [
+          {"label": "annual_subscription_fee", "value": "$120,000"},
+          {"label": "overage_rate", "value": "$0.02 per API call"},
+          {"label": "professional_services_fee", "value": "$25,000"}
+        ],
+        "obligations": [
+          "Vendor shall maintain 99.95% platform uptime measured monthly",
+          "Vendor shall provide 24/7 technical support with a 1-hour response SLA for critical issues",
+          "Vendor shall perform weekly automated backups of all Customer data",
+          "Vendor shall notify Customer of any security incident within 72 hours of discovery",
+          "Vendor shall release quarterly product updates",
+          "Customer shall designate a technical administrator within 30 days of the effective date",
+          "Customer shall not exceed 50 concurrent user sessions without written approval",
+          "Customer shall comply with all applicable data protection laws",
+          "Customer shall provide Vendor with reasonable access for audit purposes upon 14 days notice",
+          "Escrow Agent shall hold source code in escrow and release it to Customer upon Vendor insolvency"
+        ],
+        "governing_law": "Delaware"
+      }
+    }
+  ]
+}

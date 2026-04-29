@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eval Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f6fa; color: #2d3436; }
+  header { background: #2d3436; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 1.3rem; font-weight: 600; }
+  header a { color: #b2bec3; text-decoration: none; font-size: 0.9rem; margin-left: auto; }
+  header a:hover { color: #fff; }
+  .container { max-width: 1100px; margin: 32px auto; padding: 0 24px; }
+  .card { background: #fff; border-radius: 10px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #636e72; text-transform: uppercase; letter-spacing: .05em; }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .controls label { font-size: 0.82rem; color: #636e72; display: flex; flex-direction: column; gap: 4px; }
+  select { padding: 8px 10px; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 0.9rem; background: #fff; }
+  .btn { padding: 9px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+  .btn-primary { background: #6c5ce7; color: #fff; }
+  .btn-primary:hover { background: #5a4bd1; }
+  .btn-primary:disabled { background: #b2bec3; cursor: not-allowed; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 8px; }
+  .metric-card { background: #f5f6fa; border-radius: 8px; padding: 16px; text-align: center; }
+  .metric-card .val { font-size: 1.8rem; font-weight: 700; color: #2d3436; }
+  .metric-card .lbl { font-size: 0.78rem; color: #636e72; margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
+  .metric-card.good .val { color: #00b894; }
+  .metric-card.warn .val { color: #fdcb6e; }
+  .metric-card.bad  .val { color: #d63031; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { background: #f5f6fa; text-align: left; padding: 10px 12px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: .04em; color: #636e72; border-bottom: 2px solid #dfe6e9; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr.pass { background: #f0fff4; }
+  tr.fail { background: #fff5f5; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+  .badge-pass { background: #d4edda; color: #155724; }
+  .badge-fail { background: #f8d7da; color: #721c24; }
+  .badge-ok   { background: #cce5ff; color: #004085; }
+  .badge-err  { background: #f8d7da; color: #721c24; }
+  .spinner-wrap { text-align: center; padding: 48px; display: none; }
+  .spinner-lg { width: 40px; height: 40px; border: 4px solid #dfe6e9; border-top-color: #6c5ce7; border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #results-section { display: none; }
+  .info-box { background: #eaf4fb; border-left: 4px solid #0984e3; padding: 14px 18px; border-radius: 6px; font-size: 0.88rem; line-height: 1.6; margin-bottom: 20px; }
+  .info-box strong { display: block; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Eval Dashboard</h1>
+  <a href="/">&larr; Extractor</a>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>How to use this dashboard</strong>
+    Pick a model and prompt variant, then click <em>Run Evals</em>. The harness runs 5 ground-truth
+    contracts through the extractor and measures <strong>Precision</strong> (no hallucination),
+    <strong>Recall</strong> (nothing missed), and <strong>F1</strong> (balance of both).
+    Try changing the prompt variant from <code>v1_basic</code> &rarr; <code>v3_strict</code> and observe how scores shift.
+  </div>
+
+  <div class="card">
+    <h2>Configuration</h2>
+    <div class="controls">
+      <label>Model
+        <select id="model-select">
+          {% for m in models %}
+          <option value="{{ m.value }}">{{ m.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Prompt Variant
+        <select id="prompt-select">
+          {% for v in prompt_variants %}
+          <option value="{{ v }}" {% if v == 'v2_detailed' %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="btn btn-primary" id="run-btn" onclick="runEvals()">&#9654; Run Evals</button>
+    </div>
+  </div>
+
+  <div class="spinner-wrap" id="spinner">
+    <div class="spinner-lg"></div>
+    <p style="color:#636e72;">Running evals &mdash; calling LLM for each test case&hellip;</p>
+  </div>
+
+  <div id="results-section">
+
+    <div class="card">
+      <h2>Summary</h2>
+      <div class="summary-grid" id="summary-grid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Per-Contract Results</h2>
+      <table id="results-table">
+        <thead>
+          <tr>
+            <th>Contract</th>
+            <th>Schema</th>
+            <th>Parties F1</th>
+            <th>Dates F1</th>
+            <th>Amounts F1</th>
+            <th>Obligations F1</th>
+            <th>Gov. Law F1</th>
+            <th>Overall F1</th>
+            <th>Result</th>
+          </tr>
+        </thead>
+        <tbody id="results-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Field Breakdown &mdash; Precision vs Recall</h2>
+      <div id="bar-chart" style="display:flex;flex-direction:column;gap:12px;"></div>
+      <div style="margin-top:14px;font-size:0.8rem;color:#636e72;display:flex;gap:16px;">
+        <span><span style="display:inline-block;width:12px;height:12px;background:#0984e3;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Precision (no hallucination)</span>
+        <span><span style="display:inline-block;width:12px;height:12px;background:#00b894;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Recall (nothing missed)</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Run History</h2>
+      <div id="history-empty" style="color:#636e72;font-size:0.9rem;">No runs logged yet. Run evals above to start building history.</div>
+      <table id="history-table" style="display:none;">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Model</th>
+            <th>Prompt</th>
+            <th>Avg F1</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>Schema OK</th>
+            <th>Pass Rate</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="raw-output-card" style="display:none;">
+      <h2>Raw LLM Output &mdash; <span id="raw-output-label"></span></h2>
+      <pre id="raw-output-pre" style="background:#1e1e1e;color:#d4d4d4;padding:16px;border-radius:6px;overflow:auto;max-height:400px;font-size:0.8rem;"></pre>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  async function loadHistory() {
+    const res = await fetch('/evals/logs');
+    const logs = await res.json();
+    renderHistory(logs);
+  }
+
+  function renderHistory(logs) {
+    if (!logs.length) return;
+    document.getElementById('history-empty').style.display = 'none';
+    const table = document.getElementById('history-table');
+    table.style.display = 'table';
+    const tbody = document.getElementById('history-tbody');
+    tbody.innerHTML = '';
+    for (const run of logs) {
+      const cfg = run.config;
+      const s = run.summary;
+      const ts = new Date(run.timestamp).toLocaleString();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-size:0.8rem;color:#636e72;">${ts}</td>
+        <td style="font-size:0.82rem;">${cfg.model}</td>
+        <td><code style="font-size:0.78rem;background:#f5f6fa;padding:2px 6px;border-radius:4px;">${cfg.prompt_variant}</code></td>
+        <td><strong style="color:${s.avg_f1>=0.75?'#00b894':s.avg_f1>=0.5?'#fdcb6e':'#d63031'}">${pct(s.avg_f1)}</strong></td>
+        <td>${pct(s.avg_precision)}</td>
+        <td>${pct(s.avg_recall)}</td>
+        <td>${s.schema_compliance}</td>
+        <td>${s.pass_rate}</td>
+        <td><button class="btn btn-outline" style="padding:4px 10px;font-size:0.78rem;" onclick='showRawOutputs(${JSON.stringify(run)})'>Raw Output</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+
+  function showRawOutputs(run) {
+    const label = `${run.config.model} / ${run.config.prompt_variant} @ ${new Date(run.timestamp).toLocaleString()}`;
+    document.getElementById('raw-output-label').textContent = label;
+    const lines = run.results.map(r => {
+      const status = r.schema_valid ? '✓ VALID' : '✗ INVALID';
+      return `=== ${r.name} [${status}] ===\n${r.raw_output || '(no raw output logged)'}\n`;
+    });
+    document.getElementById('raw-output-pre').textContent = lines.join('\n');
+    const card = document.getElementById('raw-output-card');
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function runEvals() {
+    const btn = document.getElementById('run-btn');
+    btn.disabled = true;
+    btn.textContent = 'Running…';
+    document.getElementById('spinner').style.display = 'block';
+    document.getElementById('results-section').style.display = 'none';
+
+    const model = document.getElementById('model-select').value;
+    const prompt_variant = document.getElementById('prompt-select').value;
+
+    try {
+      const res = await fetch('/evals/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt_variant }),
+      });
+      const data = await res.json();
+      renderResults(data);
+      loadHistory();
+    } catch (e) {
+      alert('Error running evals: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '▶ Run Evals';
+      document.getElementById('spinner').style.display = 'none';
+    }
+  }
+
+  loadHistory();
+
+  function renderResults(data) {
+    const s = data.summary;
+    const summaryGrid = document.getElementById('summary-grid');
+
+    function colorClass(val, high=0.75, low=0.5) {
+      return val >= high ? 'good' : val >= low ? 'warn' : 'bad';
+    }
+
+    summaryGrid.innerHTML = `
+      <div class="metric-card ${colorClass(s.avg_precision)}">
+        <div class="val">${pct(s.avg_precision)}</div>
+        <div class="lbl">Avg Precision</div>
+      </div>
+      <div class="metric-card ${colorClass(s.avg_recall)}">
+        <div class="val">${pct(s.avg_recall)}</div>
+        <div class="lbl">Avg Recall</div>
+      </div>
+      <div class="metric-card ${colorClass(s.avg_f1)}">
+        <div class="val">${pct(s.avg_f1)}</div>
+        <div class="lbl">Avg F1</div>
+      </div>
+      <div class="metric-card">
+        <div class="val">${s.schema_compliance}</div>
+        <div class="lbl">Schema OK</div>
+      </div>
+      <div class="metric-card">
+        <div class="val">${s.pass_rate}</div>
+        <div class="lbl">Pass Rate</div>
+      </div>
+    `;
+
+    const tbody = document.getElementById('results-tbody');
+    tbody.innerHTML = '';
+    for (const r of data.results) {
+      const f = r.fields;
+      const tr = document.createElement('tr');
+      tr.className = r.pass ? 'pass' : 'fail';
+      tr.innerHTML = `
+        <td>${r.name}</td>
+        <td><span class="badge ${r.schema_valid ? 'badge-ok' : 'badge-err'}">${r.schema_valid ? '✓ Valid' : '✗ Invalid'}</span></td>
+        <td>${f1Cell(f.parties.f1)}</td>
+        <td>${f1Cell(f.dates.f1)}</td>
+        <td>${f1Cell(f.amounts.f1)}</td>
+        <td>${f1Cell(f.obligations.f1)}</td>
+        <td>${f1Cell(f.governing_law.f1)}</td>
+        <td><strong>${pct(r.overall_f1)}</strong></td>
+        <td><span class="badge ${r.pass ? 'badge-pass' : 'badge-fail'}">${r.pass ? '✓ Pass' : '✗ Fail'}</span></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    const fields = ['parties', 'dates', 'amounts', 'obligations', 'governing_law'];
+    const fieldLabels = { parties: 'Parties', dates: 'Dates', amounts: 'Amounts', obligations: 'Obligations', governing_law: 'Governing Law' };
+    const valid = data.results.filter(r => r.schema_valid);
+    const chartDiv = document.getElementById('bar-chart');
+    chartDiv.innerHTML = '';
+
+    for (const field of fields) {
+      const avgP = valid.length ? valid.reduce((s, r) => s + r.fields[field].precision, 0) / valid.length : 0;
+      const avgR = valid.length ? valid.reduce((s, r) => s + r.fields[field].recall, 0) / valid.length : 0;
+      chartDiv.innerHTML += `
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:120px;font-size:0.85rem;color:#636e72;text-align:right;">${fieldLabels[field]}</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <div style="width:${Math.round(avgP*200)}px;max-width:200px;height:10px;background:#0984e3;border-radius:4px;"></div>
+              <span style="font-size:0.78rem;color:#636e72;">${pct(avgP)}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:${Math.round(avgR*200)}px;max-width:200px;height:10px;background:#00b894;border-radius:4px;"></div>
+              <span style="font-size:0.78rem;color:#636e72;">${pct(avgR)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    document.getElementById('results-section').style.display = 'block';
+  }
+
+  function pct(v) { return (v * 100).toFixed(0) + '%'; }
+
+  function f1Cell(v) {
+    const color = v >= 0.75 ? '#00b894' : v >= 0.5 ? '#fdcb6e' : '#d63031';
+    return `<span style="color:${color};font-weight:600;">${pct(v)}</span>`;
+  }
+</script>
+
+</body>
+</html>

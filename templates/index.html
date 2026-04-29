@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contract Extractor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f6fa; color: #2d3436; }
+  header { background: #2d3436; color: #fff; padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 1.3rem; font-weight: 600; }
+  header a { color: #b2bec3; text-decoration: none; font-size: 0.9rem; margin-left: auto; }
+  header a:hover { color: #fff; }
+  .container { max-width: 960px; margin: 32px auto; padding: 0 24px; }
+  .card { background: #fff; border-radius: 10px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 16px; color: #636e72; text-transform: uppercase; letter-spacing: .05em; }
+  .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .controls label { font-size: 0.82rem; color: #636e72; display: flex; flex-direction: column; gap: 4px; }
+  select, input[type=file] { padding: 8px 10px; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 0.9rem; background: #fff; }
+  select:focus { outline: 2px solid #0984e3; }
+  .btn { padding: 9px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; }
+  .btn-primary { background: #0984e3; color: #fff; }
+  .btn-primary:hover { background: #0773c5; }
+  .btn-primary:disabled { background: #b2bec3; cursor: not-allowed; }
+  .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+  .btn-outline { background: #fff; border: 1px solid #dfe6e9; color: #2d3436; }
+  .btn-outline:hover { background: #f5f6fa; }
+  #status-banner { display: none; padding: 10px 16px; border-radius: 6px; font-size: 0.9rem; margin-top: 12px; }
+  .banner-ok { background: #d4edda; color: #155724; }
+  .banner-err { background: #f8d7da; color: #721c24; }
+  #results-section { display: none; }
+  .download-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+  pre { background: #f5f6fa; border-radius: 6px; padding: 16px; overflow: auto; font-size: 0.82rem; line-height: 1.6; max-height: 480px; border: 1px solid #dfe6e9; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Contract Extractor</h1>
+  <a href="/evals">Eval Dashboard &rarr;</a>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Upload &amp; Configure</h2>
+    <div class="controls">
+      <label>Document (PDF or TXT)
+        <input type="file" id="doc-file" accept=".pdf,.txt,.md">
+      </label>
+      <label>Model
+        <select id="model-select">
+          {% for m in models %}
+          <option value="{{ m.value }}">{{ m.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Prompt Variant
+        <select id="prompt-select">
+          {% for v in prompt_variants %}
+          <option value="{{ v }}" {% if v == 'v2_detailed' %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button class="btn btn-primary" onclick="runExtract()" id="extract-btn">Extract Entities</button>
+    </div>
+    <div id="status-banner"></div>
+  </div>
+
+  <div class="card" id="results-section">
+    <h2>Extracted Entities</h2>
+    <div class="download-bar">
+      <span style="font-size:0.85rem;color:#636e72;align-self:center;">Download as:</span>
+      <button class="btn btn-outline btn-sm" onclick="download('csv')">CSV</button>
+      <button class="btn btn-outline btn-sm" onclick="download('excel')">Excel</button>
+      <button class="btn btn-outline btn-sm" onclick="download('word')">Word</button>
+    </div>
+    <pre id="results-pre"></pre>
+  </div>
+
+</div>
+
+<script>
+  let docLoaded = false;
+
+  document.getElementById('doc-file').addEventListener('change', uploadDoc);
+
+  async function uploadDoc() {
+    const file = document.getElementById('doc-file').files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('document', file);
+    showBanner('Uploading...', 'ok');
+    const res = await fetch('/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.ok) {
+      docLoaded = true;
+      showBanner(`Document loaded — ${data.chars.toLocaleString()} characters`, 'ok');
+    } else {
+      docLoaded = false;
+      showBanner('Upload failed: ' + data.error, 'err');
+    }
+  }
+
+  async function runExtract() {
+    if (!docLoaded) {
+      const file = document.getElementById('doc-file').files[0];
+      if (!file) { showBanner('Please choose a file first.', 'err'); return; }
+      await uploadDoc();
+      if (!docLoaded) return;
+    }
+    const btn = document.getElementById('extract-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Extracting...';
+
+    const model = document.getElementById('model-select').value;
+    const prompt_variant = document.getElementById('prompt-select').value;
+
+    try {
+      const res = await fetch('/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt_variant }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        showBanner('Extraction error: ' + data.error, 'err');
+      } else {
+        document.getElementById('results-pre').textContent = JSON.stringify(data, null, 2);
+        document.getElementById('results-section').style.display = 'block';
+        showBanner('Extraction complete.', 'ok');
+      }
+    } catch (e) {
+      showBanner('Network error: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Extract Entities';
+    }
+  }
+
+  function download(fmt) {
+    window.location.href = '/download/' + fmt;
+  }
+
+  function showBanner(msg, type) {
+    const el = document.getElementById('status-banner');
+    el.textContent = msg;
+    el.className = type === 'ok' ? 'banner-ok' : 'banner-err';
+    el.style.display = 'block';
+  }
+</script>
+
+</body>
+</html>
